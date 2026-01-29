@@ -1,6 +1,7 @@
 package com.example.taskmaster.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -48,7 +49,7 @@ fun NavGraph(navController: NavHostController) {
                     type = NavType.IntType
                 }
             )
-        ) { backStackEntry ->
+        ) { backStackEntry: NavBackStackEntry ->
             val taskId = backStackEntry.arguments?.getInt("taskId") ?: return@composable
             EditTaskScreen(
                 taskId = taskId,
