@@ -1,6 +1,7 @@
 package com.example.taskmaster.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -10,12 +11,15 @@ import androidx.navigation.navArgument
 import com.example.taskmaster.ui.screens.AddTaskScreen
 import com.example.taskmaster.ui.screens.EditTaskScreen
 import com.example.taskmaster.ui.screens.TaskListScreen
+import com.example.taskmaster.viewmodel.TaskViewModel
 
 /**
  * Navigation graph for the TaskMaster app
  */
 @Composable
 fun NavGraph(navController: NavHostController) {
+    val viewModel: TaskViewModel = viewModel() // Shared ViewModel instance
+
     NavHost(
         navController = navController,
         startDestination = Routes.TaskList.route
@@ -23,6 +27,7 @@ fun NavGraph(navController: NavHostController) {
         // Task List Screen
         composable(route = Routes.TaskList.route) {
             TaskListScreen(
+                viewModel = viewModel, // Pass shared ViewModel
                 onAddTask = {
                     navController.navigate(Routes.AddTask.route)
                 },
@@ -35,6 +40,7 @@ fun NavGraph(navController: NavHostController) {
         // Add Task Screen
         composable(route = Routes.AddTask.route) {
             AddTaskScreen(
+                viewModel = viewModel, // Pass shared ViewModel
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -53,6 +59,7 @@ fun NavGraph(navController: NavHostController) {
             val taskId = backStackEntry.arguments?.getInt("taskId") ?: return@composable
             EditTaskScreen(
                 taskId = taskId,
+                viewModel = viewModel, // Pass shared ViewModel
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -60,4 +67,3 @@ fun NavGraph(navController: NavHostController) {
         }
     }
 }
-
