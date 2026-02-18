@@ -1,6 +1,7 @@
 package com.example.taskmaster.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
@@ -13,7 +14,9 @@ import com.example.taskmaster.ui.screens.EditTaskScreen
 import com.example.taskmaster.ui.screens.LoginScreen
 import com.example.taskmaster.ui.screens.RegisterScreen
 import com.example.taskmaster.ui.screens.TaskListScreen
+import com.example.taskmaster.viewmodel.LoginViewModel
 import com.example.taskmaster.viewmodel.TaskViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Navigation graph for the TaskMaster app
@@ -21,6 +24,8 @@ import com.example.taskmaster.viewmodel.TaskViewModel
 @Composable
 fun NavGraph(navController: NavHostController) {
     val viewModel: TaskViewModel = viewModel() // Shared ViewModel instance
+    val loginViewModel: LoginViewModel = viewModel() // Shared LoginViewModel instance
+    val coroutineScope = rememberCoroutineScope()
 
     NavHost(
         navController = navController,
@@ -29,6 +34,7 @@ fun NavGraph(navController: NavHostController) {
         // Login Screen
         composable(route = Routes.Login.route) {
             LoginScreen(
+                viewModel = loginViewModel,
                 onLoginSuccess = {
                     navController.navigate(Routes.TaskList.route) {
                         // Clear the login screen from back stack
@@ -64,6 +70,19 @@ fun NavGraph(navController: NavHostController) {
                 },
                 onEditTask = { taskId ->
                     navController.navigate(Routes.EditTask.createRoute(taskId))
+                },
+                onSignOut = {
+                    coroutineScope.launch {
+                        loginViewModel.signOut()
+                        navController.navigate(Routes.Login.route) {
+                            // Clear the entire back stack
+                            popUpTo(0) {
+                                inclusive = true
+                            }
+                            // Avoid multiple copies of login screen
+                            launchSingleTop = true
+                        }
+                    }
                 }
             )
         }

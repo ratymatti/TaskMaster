@@ -100,6 +100,31 @@ class LoginViewModel(
     }
 
     /**
+     * Sign out the current user
+     */
+    suspend fun signOut() {
+        try {
+            authService.signOut()
+            _isAuthenticated.value = false
+            _userId.value = null
+            _accessToken.value = null
+            _errorMessage.value = null
+        } catch (e: Exception) {
+            _errorMessage.value = "Failed to sign out: ${e.message}"
+        }
+    }
+
+    /**
+     * Reset authentication state (useful when returning to login screen)
+     */
+    fun resetAuthState() {
+        _isAuthenticated.value = false
+        _userId.value = null
+        _accessToken.value = null
+        _errorMessage.value = null
+    }
+
+    /**
      * Clear error message
      */
     fun clearError() {

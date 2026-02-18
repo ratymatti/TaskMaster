@@ -36,6 +36,11 @@ fun LoginScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isAuthenticated by viewModel.isAuthenticated.collectAsState()
 
+    // Reset auth state when entering login screen to prevent navigation loops
+    LaunchedEffect(Unit) {
+        viewModel.resetAuthState()
+    }
+
     // Navigate on successful authentication
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
