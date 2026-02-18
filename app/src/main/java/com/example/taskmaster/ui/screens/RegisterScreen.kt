@@ -15,38 +15,40 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.taskmaster.viewmodel.LoginViewModel
+import com.example.taskmaster.viewmodel.RegisterViewModel
 
 /**
- * Login Screen - allows users to authenticate
+ * Register Screen - allows new users to create an account
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+fun RegisterScreen(
+    onRegisterSuccess: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    viewModel: RegisterViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
+    val isRegistrationSuccessful by viewModel.isRegistrationSuccessful.collectAsState()
 
-    // Navigate on successful authentication
-    LaunchedEffect(isAuthenticated) {
-        if (isAuthenticated) {
-            onLoginSuccess()
+    // Navigate on successful registration
+    LaunchedEffect(isRegistrationSuccessful) {
+        if (isRegistrationSuccessful) {
+            onRegisterSuccess()
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Login") }
+                title = { Text("Create Account") }
             )
         }
     ) { paddingValues ->
@@ -76,11 +78,11 @@ fun LoginScreen(
                 }
             }
 
-            // Email/Username field
+            // Email field
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email/Username") },
+                label = { Text("Email") },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -106,6 +108,36 @@ fun LoginScreen(
                     PasswordVisualTransformation(),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Text(if (passwordVisible) "Hide" else "Show")
+                    }
+                },
+                supportingText = {
+                    Text("Minimum 8 characters")
+                }
+            )
+
+            // Confirm Password field
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm Password") },
+                singleLine = true,
+                visualTransformation = if (confirmPasswordVisible)
+                    VisualTransformation.None
+                else
+                    PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(bottom = 24.dp),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -115,17 +147,17 @@ fun LoginScreen(
                     onDone = { focusManager.clearFocus() }
                 ),
                 trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Text(if (passwordVisible) "Hide" else "Show")
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Text(if (confirmPasswordVisible) "Hide" else "Show")
                     }
                 }
             )
 
-            // Login button
+            // Register button
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    viewModel.login(email, password)
+                    viewModel.register(email, password, confirmPassword)
                 },
                 enabled = !isLoading,
                 modifier = Modifier
@@ -138,18 +170,18 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Login")
+                    Text("Register")
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Navigate to Register link
+            // Navigate to Login link
             TextButton(
-                onClick = onNavigateToRegister,
+                onClick = onNavigateToLogin,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Don't have an account? Register")
+                Text("Already have an account? Login")
             }
         }
     }

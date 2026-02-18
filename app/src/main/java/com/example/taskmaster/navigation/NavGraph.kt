@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.example.taskmaster.ui.screens.AddTaskScreen
 import com.example.taskmaster.ui.screens.EditTaskScreen
 import com.example.taskmaster.ui.screens.LoginScreen
+import com.example.taskmaster.ui.screens.RegisterScreen
 import com.example.taskmaster.ui.screens.TaskListScreen
 import com.example.taskmaster.viewmodel.TaskViewModel
 
@@ -35,6 +36,21 @@ fun NavGraph(navController: NavHostController) {
                             inclusive = true
                         }
                     }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(Routes.Register.route)
+                }
+            )
+        }
+
+        // Register Screen
+        composable(route = Routes.Register.route) {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.popBackStack() // Go back to login
+                },
+                onNavigateToLogin = {
+                    navController.popBackStack() // Go back to login
                 }
             )
         }

@@ -31,6 +31,23 @@ class AuthService {
     }
 
     /**
+     * Sign up with email and password
+     * @param email User's email
+     * @param password User's password
+     * @return UserInfo on success
+     * @throws Exception on failure
+     */
+    suspend fun signUpWithEmail(email: String, password: String): UserInfo {
+        supabase.auth.signUpWith(Email) {
+            this.email = email
+            this.password = password
+        }
+
+        return supabase.auth.currentUserOrNull()
+            ?: throw Exception("Registration failed: User not created")
+    }
+
+    /**
      * Sign out the current user
      */
     suspend fun signOut() {
