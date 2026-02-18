@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.taskmaster.ui.screens.AddTaskScreen
 import com.example.taskmaster.ui.screens.EditTaskScreen
+import com.example.taskmaster.ui.screens.LoginScreen
 import com.example.taskmaster.ui.screens.TaskListScreen
 import com.example.taskmaster.viewmodel.TaskViewModel
 
@@ -22,8 +23,22 @@ fun NavGraph(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.TaskList.route
+        startDestination = Routes.Login.route
     ) {
+        // Login Screen
+        composable(route = Routes.Login.route) {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(Routes.TaskList.route) {
+                        // Clear the login screen from back stack
+                        popUpTo(Routes.Login.route) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
         // Task List Screen
         composable(route = Routes.TaskList.route) {
             TaskListScreen(
