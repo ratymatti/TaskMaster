@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.taskmaster.ui.components.PasswordVisibilityToggle
 import com.example.taskmaster.viewmodel.RegisterViewModel
 
 /**
@@ -117,9 +118,10 @@ fun RegisterScreen(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 ),
                 trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Text(if (passwordVisible) "Hide" else "Show")
-                    }
+                    PasswordVisibilityToggle(
+                        passwordVisible = passwordVisible,
+                        onToggle = { passwordVisible = !passwordVisible }
+                    )
                 },
                 supportingText = {
                     Text("Minimum 8 characters")
@@ -147,9 +149,10 @@ fun RegisterScreen(
                     onDone = { focusManager.clearFocus() }
                 ),
                 trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                        Text(if (confirmPasswordVisible) "Hide" else "Show")
-                    }
+                    PasswordVisibilityToggle(
+                        passwordVisible = confirmPasswordVisible,
+                        onToggle = { confirmPasswordVisible = !confirmPasswordVisible }
+                    )
                 }
             )
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.taskmaster.ui.components.PasswordVisibilityToggle
 import com.example.taskmaster.viewmodel.LoginViewModel
 
 /**
@@ -120,9 +121,10 @@ fun LoginScreen(
                     onDone = { focusManager.clearFocus() }
                 ),
                 trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Text(if (passwordVisible) "Hide" else "Show")
-                    }
+                    PasswordVisibilityToggle(
+                        passwordVisible = passwordVisible,
+                        onToggle = { passwordVisible = !passwordVisible }
+                    )
                 }
             )
 
