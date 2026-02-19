@@ -102,11 +102,11 @@ fun NavGraph(navController: NavHostController) {
             route = Routes.EditTask.route,
             arguments = listOf(
                 navArgument("taskId") {
-                    type = NavType.IntType
+                    type = NavType.StringType
                 }
             )
         ) { backStackEntry: NavBackStackEntry ->
-            val taskId = backStackEntry.arguments?.getInt("taskId") ?: return@composable
+            val taskId = backStackEntry.arguments?.getString("taskId") ?: return@composable
             EditTaskScreen(
                 taskId = taskId,
                 viewModel = viewModel, // Pass shared ViewModel

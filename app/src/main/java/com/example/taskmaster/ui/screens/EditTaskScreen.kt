@@ -8,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.taskmaster.data.model.Task
 import com.example.taskmaster.data.model.TaskPriority
 import com.example.taskmaster.viewmodel.TaskViewModel
 
@@ -18,7 +17,7 @@ import com.example.taskmaster.viewmodel.TaskViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(
-    taskId: Int,
+    taskId: String,
     onNavigateBack: () -> Unit,
     viewModel: TaskViewModel = viewModel()
 ) {

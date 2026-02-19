@@ -1,7 +1,6 @@
 package com.example.taskmaster.data.model
 
 import kotlinx.serialization.Serializable
-import kotlinx.datetime.LocalDateTime
 
 /**
  * Task data model representing a task in the TaskMaster app
@@ -9,7 +8,8 @@ import kotlinx.datetime.LocalDateTime
  */
 @Serializable
 data class Task(
-    val id: Int? = null,
+    val id: String? = null,        // UUID from Supabase
+    val userId: String? = null,    // User ID for association
     val title: String,
     val description: String? = null,
     val priority: TaskPriority,

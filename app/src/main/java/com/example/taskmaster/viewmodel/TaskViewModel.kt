@@ -2,8 +2,9 @@ package com.example.taskmaster.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.taskmaster.data.exceptions.UserNotAuthenticatedException
 import com.example.taskmaster.data.model.Task
-import com.example.taskmaster.data.model.TaskPriority
+import com.example.taskmaster.data.repository.TaskRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,8 @@ import kotlinx.coroutines.launch
  * ViewModel for managing task-related state and operations
  */
 class TaskViewModel : ViewModel() {
+
+    private val taskRepository = TaskRepository
 
     // State for the list of tasks
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
@@ -32,16 +35,17 @@ class TaskViewModel : ViewModel() {
     }
 
     /**
-     * Load all tasks (mock data for now, will connect to Supabase later)
+     * Load all tasks from Supabase for the current user
      */
     fun loadTasks() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // TODO: Replace with actual Supabase call
-                // For now, using mock data
-                _tasks.value = getMockTasks()
+                _tasks.value = taskRepository.getTasksForCurrentUser()
                 _error.value = null
+            } catch (e: UserNotAuthenticatedException) {
+                _error.value = "Authentication error. Please restart the app."
+                _tasks.value = emptyList()
             } catch (e: Exception) {
                 _error.value = "Failed to load tasks: ${e.message}"
             } finally {
@@ -51,15 +55,17 @@ class TaskViewModel : ViewModel() {
     }
 
     /**
-     * Add a new task (mock implementation for now)
+     * Add a new task to Supabase
      */
     fun addTask(task: Task) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // TODO: Replace with actual Supabase call
-                _tasks.value = _tasks.value + task.copy(id = (_tasks.value.maxOfOrNull { it.id ?: 0 } ?: 0) + 1)
+                val createdTask = taskRepository.addTask(task)
+                _tasks.value = _tasks.value + createdTask
                 _error.value = null
+            } catch (e: UserNotAuthenticatedException) {
+                _error.value = "Authentication error. Please restart the app."
             } catch (e: Exception) {
                 _error.value = "Failed to add task: ${e.message}"
             } finally {
@@ -69,15 +75,17 @@ class TaskViewModel : ViewModel() {
     }
 
     /**
-     * Update an existing task (mock implementation for now)
+     * Update an existing task in Supabase
      */
     fun updateTask(task: Task) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // TODO: Replace with actual Supabase call
-                _tasks.value = _tasks.value.map { if (it.id == task.id) task else it }
+                val updatedTask = taskRepository.updateTask(task)
+                _tasks.value = _tasks.value.map { if (it.id == updatedTask.id) updatedTask else it }
                 _error.value = null
+            } catch (e: UserNotAuthenticatedException) {
+                _error.value = "Authentication error. Please restart the app."
             } catch (e: Exception) {
                 _error.value = "Failed to update task: ${e.message}"
             } finally {
@@ -87,15 +95,17 @@ class TaskViewModel : ViewModel() {
     }
 
     /**
-     * Delete a task (mock implementation for now)
+     * Delete a task from Supabase
      */
-    fun deleteTask(taskId: Int) {
+    fun deleteTask(taskId: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // TODO: Replace with actual Supabase call
+                taskRepository.deleteTask(taskId)
                 _tasks.value = _tasks.value.filter { it.id != taskId }
                 _error.value = null
+            } catch (e: UserNotAuthenticatedException) {
+                _error.value = "Authentication error. Please restart the app."
             } catch (e: Exception) {
                 _error.value = "Failed to delete task: ${e.message}"
             } finally {
@@ -105,17 +115,22 @@ class TaskViewModel : ViewModel() {
     }
 
     /**
-     * Toggle task completion status
+     * Toggle task completion status in Supabase
      */
-    fun toggleTaskCompletion(taskId: Int) {
+    fun toggleTaskCompletion(taskId: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // TODO: Replace with actual Supabase call
-                _tasks.value = _tasks.value.map {
-                    if (it.id == taskId) it.copy(isCompleted = !it.isCompleted) else it
+                val task = _tasks.value.find { it.id == taskId }
+                if (task != null) {
+                    val updatedTask = taskRepository.toggleTaskCompletion(taskId, !task.isCompleted)
+                    _tasks.value = _tasks.value.map {
+                        if (it.id == taskId) updatedTask else it
+                    }
+                    _error.value = null
                 }
-                _error.value = null
+            } catch (e: UserNotAuthenticatedException) {
+                _error.value = "Authentication error. Please restart the app."
             } catch (e: Exception) {
                 _error.value = "Failed to update task: ${e.message}"
             } finally {
@@ -127,7 +142,7 @@ class TaskViewModel : ViewModel() {
     /**
      * Get a task by ID
      */
-    fun getTaskById(taskId: Int): Task? {
+    fun getTaskById(taskId: String): Task? {
         return _tasks.value.find { it.id == taskId }
     }
 
@@ -136,38 +151,6 @@ class TaskViewModel : ViewModel() {
      */
     fun clearError() {
         _error.value = null
-    }
-
-    /**
-     * Mock data for testing
-     */
-    private fun getMockTasks(): List<Task> {
-        return listOf(
-            Task(
-                id = 1,
-                title = "Complete project proposal",
-                description = "Finish writing the TaskMaster project proposal document",
-                priority = TaskPriority.HIGH,
-                deadline = "2026-02-05T17:00:00",
-                isCompleted = false
-            ),
-            Task(
-                id = 2,
-                title = "Buy groceries",
-                description = "Milk, eggs, bread, vegetables",
-                priority = TaskPriority.MEDIUM,
-                deadline = "2026-01-30T18:00:00",
-                isCompleted = false
-            ),
-            Task(
-                id = 3,
-                title = "Call dentist",
-                description = "Schedule appointment for checkup",
-                priority = TaskPriority.LOW,
-                deadline = null,
-                isCompleted = true
-            )
-        )
     }
 }
 

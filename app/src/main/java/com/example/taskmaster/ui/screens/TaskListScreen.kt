@@ -23,12 +23,13 @@ import com.example.taskmaster.viewmodel.TaskViewModel
 @Composable
 fun TaskListScreen(
     onAddTask: () -> Unit,
-    onEditTask: (Int) -> Unit,
+    onEditTask: (String) -> Unit,
     onSignOut: () -> Unit,
     viewModel: TaskViewModel = viewModel()
 ) {
     val tasks by viewModel.tasks.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Scaffold(
         topBar = {
@@ -66,6 +67,25 @@ fun TaskListScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
+                error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = error ?: "Unknown error",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadTasks() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
                 tasks.isEmpty() -> {
                     Text(
                         text = "No tasks yet. Tap + to add one!",
@@ -79,13 +99,15 @@ fun TaskListScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(tasks, key = { it.id ?: 0 }) { task ->
-                            TaskItem(
-                                task = task,
-                                onTaskClick = { onEditTask(task.id ?: 0) },
-                                onToggleComplete = { viewModel.toggleTaskCompletion(task.id ?: 0) },
-                                onDeleteTask = { viewModel.deleteTask(task.id ?: 0) }
-                            )
+                        items(tasks, key = { it.id ?: "" }) { task ->
+                            task.id?.let { taskId ->
+                                TaskItem(
+                                    task = task,
+                                    onTaskClick = { onEditTask(taskId) },
+                                    onToggleComplete = { viewModel.toggleTaskCompletion(taskId) },
+                                    onDeleteTask = { viewModel.deleteTask(taskId) }
+                                )
+                            }
                         }
                     }
                 }
