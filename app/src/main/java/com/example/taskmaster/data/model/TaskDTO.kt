@@ -10,14 +10,14 @@ import kotlinx.serialization.SerialName
 @Serializable
 data class TaskDTO(
     val id: String? = null,
-    val title: String,
+    val title: String = "",
     val description: String? = null,
-    val priority: String,
+    val priority: String = "MEDIUM",
     @SerialName("is_completed")
     val isCompleted: Boolean = false,
     val deadline: String? = null,
     @SerialName("user_id")
-    val userId: String,
+    val userId: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")

@@ -36,6 +36,7 @@ object TaskRepository {
 
             // Get user ID
             val userId = currentUser.id
+            android.util.Log.d("TaskRepository", "Loading tasks for user: $userId")
 
             // Query tasks from Supabase filtered by user_id
             val taskDTOs = supabase
@@ -47,16 +48,22 @@ object TaskRepository {
                 }
                 .decodeList<TaskDTO>()
 
+            android.util.Log.d("TaskRepository", "Successfully loaded ${taskDTOs.size} tasks")
+
             // Convert DTOs to Task models
             return taskDTOs.map { it.toTask() }
 
         } catch (e: UserNotAuthenticatedException) {
+            android.util.Log.e("TaskRepository", "User not authenticated", e)
             throw e
         } catch (e: IOException) {
+            android.util.Log.e("TaskRepository", "Network error loading tasks", e)
             throw NetworkException("Network error while loading tasks", e)
         } catch (e: SerializationException) {
-            throw DatabaseException("Failed to parse tasks from database", e)
+            android.util.Log.e("TaskRepository", "Serialization error: ${e.message}", e)
+            throw DatabaseException("Failed to parse tasks from database: ${e.message}", e)
         } catch (e: Exception) {
+            android.util.Log.e("TaskRepository", "Error loading tasks: ${e.message}", e)
             throw DatabaseException("Failed to load tasks: ${e.message}", e)
         }
     }
@@ -85,7 +92,7 @@ object TaskRepository {
             )
 
             val createdTaskDTO = supabase
-                .from("tasks")
+                .from("Tasks")
                 .insert(taskDTOToInsert) {
                     select()
                 }
@@ -126,7 +133,7 @@ object TaskRepository {
             )
 
             val updatedTaskDTO = supabase
-                .from("tasks")
+                .from("Tasks")
                 .update(taskUpdateMap) {
                     select()
                     filter {
@@ -158,7 +165,7 @@ object TaskRepository {
                 ?: throw UserNotAuthenticatedException("User is not authenticated")
 
             supabase
-                .from("tasks")
+                .from("Tasks")
                 .delete {
                     filter {
                         eq("id", taskId)
@@ -188,7 +195,7 @@ object TaskRepository {
                 ?: throw UserNotAuthenticatedException("User is not authenticated")
 
             val updatedTaskDTO = supabase
-                .from("tasks")
+                .from("Tasks")
                 .update({
                     set("is_completed", isCompleted)
                 }) {
