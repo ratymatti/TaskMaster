@@ -29,10 +29,6 @@ class TaskViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init {
-        // Load tasks when ViewModel is created
-        loadTasks()
-    }
 
     /**
      * Load all tasks from Supabase for the current user
