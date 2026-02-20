@@ -13,3 +13,6 @@
 local.properties
 /md
 .env
+
+# Kotlin compiler cache and error logs
+.kotlin/
