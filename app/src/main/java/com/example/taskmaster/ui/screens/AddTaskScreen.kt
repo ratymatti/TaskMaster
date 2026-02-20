@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskmaster.data.model.Task
 import com.example.taskmaster.data.model.TaskPriority
+import com.example.taskmaster.viewmodel.TaskOperationResult
 import com.example.taskmaster.viewmodel.TaskViewModel
 
 /**
@@ -25,6 +26,26 @@ fun AddTaskScreen(
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(TaskPriority.MEDIUM) }
     var deadline by remember { mutableStateOf("") }
+
+    // Observe ViewModel states
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val operationResult by viewModel.operationResult.collectAsState()
+
+    // Reset operation result when entering the screen
+    LaunchedEffect(Unit) {
+        viewModel.resetOperationResult()
+    }
+
+    // Handle operation result
+    LaunchedEffect(operationResult) {
+        when (operationResult) {
+            is TaskOperationResult.Success -> {
+                onNavigateBack()
+            }
+            else -> { /* No action needed */ }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -49,13 +70,30 @@ fun AddTaskScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Error message display
+            error?.let { errorMessage ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = errorMessage,
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
             // Title Field
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Title") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                enabled = !isLoading
             )
 
             // Description Field
@@ -65,7 +103,8 @@ fun AddTaskScreen(
                 label = { Text("Description (Optional)") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
-                maxLines = 5
+                maxLines = 5,
+                enabled = !isLoading
             )
 
             // Priority Selector
@@ -79,7 +118,8 @@ fun AddTaskScreen(
                         selected = priority == priorityOption,
                         onClick = { priority = priorityOption },
                         label = { Text(priorityOption.name) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
                     )
                 }
             }
@@ -90,7 +130,8 @@ fun AddTaskScreen(
                 onValueChange = { deadline = it },
                 label = { Text("Deadline (Optional, ISO format)") },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("2026-02-15T17:00:00") }
+                placeholder = { Text("2026-02-15T17:00:00") },
+                enabled = !isLoading
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -106,13 +147,19 @@ fun AddTaskScreen(
                             deadline = deadline.ifBlank { null }
                         )
                         viewModel.addTask(task)
-                        onNavigateBack()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank() && !isLoading
             ) {
-                Text("Save Task")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Save Task")
+                }
             }
         }
     }

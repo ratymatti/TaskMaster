@@ -11,6 +11,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
+ * Sealed class representing the result of a task operation
+ */
+sealed class TaskOperationResult {
+    object Idle : TaskOperationResult()
+    object InProgress : TaskOperationResult()
+    data class Success(val message: String) : TaskOperationResult()
+    data class Error(val message: String) : TaskOperationResult()
+}
+
+/**
  * ViewModel for managing task-related state and operations
  */
 class TaskViewModel : ViewModel() {
@@ -28,6 +38,10 @@ class TaskViewModel : ViewModel() {
     // State for error messages
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    // State for operation results (add/update/delete)
+    private val _operationResult = MutableStateFlow<TaskOperationResult>(TaskOperationResult.Idle)
+    val operationResult: StateFlow<TaskOperationResult> = _operationResult.asStateFlow()
 
 
     /**
@@ -55,15 +69,21 @@ class TaskViewModel : ViewModel() {
      */
     fun addTask(task: Task) {
         viewModelScope.launch {
+            _operationResult.value = TaskOperationResult.InProgress
             _isLoading.value = true
             try {
                 val createdTask = taskRepository.addTask(task)
                 _tasks.value = _tasks.value + createdTask
                 _error.value = null
+                _operationResult.value = TaskOperationResult.Success("Task added successfully")
             } catch (e: UserNotAuthenticatedException) {
-                _error.value = "Authentication error. Please restart the app."
+                val errorMsg = "Authentication error. Please restart the app."
+                _error.value = errorMsg
+                _operationResult.value = TaskOperationResult.Error(errorMsg)
             } catch (e: Exception) {
-                _error.value = "Failed to add task: ${e.message}"
+                val errorMsg = "Failed to add task: ${e.message}"
+                _error.value = errorMsg
+                _operationResult.value = TaskOperationResult.Error(errorMsg)
             } finally {
                 _isLoading.value = false
             }
@@ -75,15 +95,21 @@ class TaskViewModel : ViewModel() {
      */
     fun updateTask(task: Task) {
         viewModelScope.launch {
+            _operationResult.value = TaskOperationResult.InProgress
             _isLoading.value = true
             try {
                 val updatedTask = taskRepository.updateTask(task)
                 _tasks.value = _tasks.value.map { if (it.id == updatedTask.id) updatedTask else it }
                 _error.value = null
+                _operationResult.value = TaskOperationResult.Success("Task updated successfully")
             } catch (e: UserNotAuthenticatedException) {
-                _error.value = "Authentication error. Please restart the app."
+                val errorMsg = "Authentication error. Please restart the app."
+                _error.value = errorMsg
+                _operationResult.value = TaskOperationResult.Error(errorMsg)
             } catch (e: Exception) {
-                _error.value = "Failed to update task: ${e.message}"
+                val errorMsg = "Failed to update task: ${e.message}"
+                _error.value = errorMsg
+                _operationResult.value = TaskOperationResult.Error(errorMsg)
             } finally {
                 _isLoading.value = false
             }
@@ -95,15 +121,21 @@ class TaskViewModel : ViewModel() {
      */
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
+            _operationResult.value = TaskOperationResult.InProgress
             _isLoading.value = true
             try {
                 taskRepository.deleteTask(taskId)
                 _tasks.value = _tasks.value.filter { it.id != taskId }
                 _error.value = null
+                _operationResult.value = TaskOperationResult.Success("Task deleted successfully")
             } catch (e: UserNotAuthenticatedException) {
-                _error.value = "Authentication error. Please restart the app."
+                val errorMsg = "Authentication error. Please restart the app."
+                _error.value = errorMsg
+                _operationResult.value = TaskOperationResult.Error(errorMsg)
             } catch (e: Exception) {
-                _error.value = "Failed to delete task: ${e.message}"
+                val errorMsg = "Failed to delete task: ${e.message}"
+                _error.value = errorMsg
+                _operationResult.value = TaskOperationResult.Error(errorMsg)
             } finally {
                 _isLoading.value = false
             }
@@ -147,6 +179,13 @@ class TaskViewModel : ViewModel() {
      */
     fun clearError() {
         _error.value = null
+    }
+
+    /**
+     * Reset operation result state
+     */
+    fun resetOperationResult() {
+        _operationResult.value = TaskOperationResult.Idle
     }
 }
 

@@ -81,14 +81,14 @@ object TaskRepository {
 
             val userId = currentUser.id
 
-            // Create TaskDTO without id (Supabase will generate it)
-            val taskDTOToInsert = mapOf(
-                "title" to task.title,
-                "description" to task.description,
-                "priority" to task.priority.name,
-                "is_completed" to task.isCompleted,
-                "deadline" to task.deadline,
-                "user_id" to userId
+            // Create TaskDTO for insertion
+            val taskDTOToInsert = TaskDTO(
+                title = task.title,
+                description = task.description,
+                priority = task.priority.name,
+                isCompleted = task.isCompleted,
+                deadline = task.deadline,
+                userId = userId
             )
 
             val createdTaskDTO = supabase
@@ -122,19 +122,20 @@ object TaskRepository {
 
             val userId = currentUser.id
 
-            // Create update map
-            val taskUpdateMap = mapOf(
-                "title" to task.title,
-                "description" to task.description,
-                "priority" to task.priority.name,
-                "is_completed" to task.isCompleted,
-                "deadline" to task.deadline,
-                "user_id" to userId
+            // Create TaskDTO for update
+            val taskDTOToUpdate = TaskDTO(
+                id = task.id,
+                title = task.title,
+                description = task.description,
+                priority = task.priority.name,
+                isCompleted = task.isCompleted,
+                deadline = task.deadline,
+                userId = userId
             )
 
             val updatedTaskDTO = supabase
                 .from("Tasks")
-                .update(taskUpdateMap) {
+                .update(taskDTOToUpdate) {
                     select()
                     filter {
                         eq("id", task.id ?: "")
