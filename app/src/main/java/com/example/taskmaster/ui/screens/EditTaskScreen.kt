@@ -30,23 +30,23 @@ fun EditTaskScreen(
     var priority by remember { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
     var deadline by remember { mutableStateOf(task?.deadline ?: "") }
 
+    // Track if operation was initiated from this screen
+    var operationInitiated by remember { mutableStateOf(false) }
+
     // Observe ViewModel states
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val operationResult by viewModel.operationResult.collectAsState()
 
-    // Reset operation result when entering the screen
-    LaunchedEffect(Unit) {
-        viewModel.resetOperationResult()
-    }
-
-    // Handle operation result
+    // Handle operation result - only navigate back if operation was initiated from this screen
     LaunchedEffect(operationResult) {
-        when (operationResult) {
-            is TaskOperationResult.Success -> {
-                onNavigateBack()
+        if (operationInitiated) {
+            when (operationResult) {
+                is TaskOperationResult.Success -> {
+                    onNavigateBack()
+                }
+                else -> { /* No action needed */ }
             }
-            else -> { /* No action needed */ }
         }
     }
 
@@ -151,6 +151,7 @@ fun EditTaskScreen(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
+                        operationInitiated = true
                         val updatedTask = task.copy(
                             title = title,
                             description = description.ifBlank { null },
@@ -176,6 +177,7 @@ fun EditTaskScreen(
             // Delete Button
             OutlinedButton(
                 onClick = {
+                    operationInitiated = true
                     viewModel.deleteTask(taskId)
                 },
                 modifier = Modifier.fillMaxWidth(),

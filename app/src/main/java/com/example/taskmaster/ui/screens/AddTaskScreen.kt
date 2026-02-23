@@ -27,23 +27,23 @@ fun AddTaskScreen(
     var priority by remember { mutableStateOf(TaskPriority.MEDIUM) }
     var deadline by remember { mutableStateOf("") }
 
+    // Track if operation was initiated from this screen
+    var operationInitiated by remember { mutableStateOf(false) }
+
     // Observe ViewModel states
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val operationResult by viewModel.operationResult.collectAsState()
 
-    // Reset operation result when entering the screen
-    LaunchedEffect(Unit) {
-        viewModel.resetOperationResult()
-    }
-
-    // Handle operation result
+    // Handle operation result - only navigate back if operation was initiated from this screen
     LaunchedEffect(operationResult) {
-        when (operationResult) {
-            is TaskOperationResult.Success -> {
-                onNavigateBack()
+        if (operationInitiated) {
+            when (operationResult) {
+                is TaskOperationResult.Success -> {
+                    onNavigateBack()
+                }
+                else -> { /* No action needed */ }
             }
-            else -> { /* No action needed */ }
         }
     }
 
@@ -140,6 +140,7 @@ fun AddTaskScreen(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
+                        operationInitiated = true
                         android.util.Log.d("AddTaskScreen", "Creating task with priority: $priority")
                         val task = Task(
                             title = title,

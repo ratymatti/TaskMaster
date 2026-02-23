@@ -35,6 +35,7 @@ fun TaskListScreen(
     // Load tasks when the screen is first displayed
     LaunchedEffect(Unit) {
         viewModel.loadTasks()
+        viewModel.resetOperationResult() // Reset operation result when returning to task list
     }
 
     Scaffold(
