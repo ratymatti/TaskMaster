@@ -10,14 +10,14 @@ import kotlinx.serialization.SerialName
 @Serializable
 data class TaskDTO(
     val id: String? = null,
-    val title: String = "",
+    val title: String,
     val description: String? = null,
-    val priority: String = "MEDIUM",
+    val priority: String,  // Required field - no default, must be explicitly provided
     @SerialName("is_completed")
     val isCompleted: Boolean = false,
     val deadline: String? = null,
     @SerialName("user_id")
-    val userId: String? = null,
+    val userId: String,  // Required field
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")
@@ -36,7 +36,7 @@ fun TaskDTO.toTask(): Task {
         priority = try {
             TaskPriority.valueOf(priority.uppercase())
         } catch (e: IllegalArgumentException) {
-            // Default to MEDIUM if priority value is invalid
+            // Fallback to MEDIUM if invalid value (should not happen with DB constraint)
             TaskPriority.MEDIUM
         },
         deadline = deadline,

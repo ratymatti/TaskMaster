@@ -7,7 +7,6 @@ import com.example.taskmaster.data.exceptions.UserNotAuthenticatedException
 import com.example.taskmaster.data.model.Task
 import com.example.taskmaster.data.model.TaskDTO
 import com.example.taskmaster.data.model.toTask
-import com.example.taskmaster.data.model.toTaskDTO
 import com.example.taskmaster.data.service.AuthService
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.SerializationException
@@ -81,15 +80,20 @@ object TaskRepository {
 
             val userId = currentUser.id
 
-            // Create TaskDTO for insertion
+            // Create TaskDTO for insertion - ensure priority is explicitly set
+            val priorityValue = task.priority.name
+            android.util.Log.d("TaskRepository", "Adding task with priority: $priorityValue (from enum: ${task.priority})")
+
             val taskDTOToInsert = TaskDTO(
                 title = task.title,
                 description = task.description,
-                priority = task.priority.name,
+                priority = priorityValue,
                 isCompleted = task.isCompleted,
                 deadline = task.deadline,
                 userId = userId
             )
+
+            android.util.Log.d("TaskRepository", "TaskDTO created: $taskDTOToInsert")
 
             val createdTaskDTO = supabase
                 .from("Tasks")
@@ -127,7 +131,7 @@ object TaskRepository {
                 id = task.id,
                 title = task.title,
                 description = task.description,
-                priority = task.priority.name,
+                priority = task.priority.name, // Always non-null enum value
                 isCompleted = task.isCompleted,
                 deadline = task.deadline,
                 userId = userId

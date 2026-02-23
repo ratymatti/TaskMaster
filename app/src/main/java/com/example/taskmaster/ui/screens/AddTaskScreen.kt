@@ -140,12 +140,14 @@ fun AddTaskScreen(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
+                        android.util.Log.d("AddTaskScreen", "Creating task with priority: $priority")
                         val task = Task(
                             title = title,
                             description = description.ifBlank { null },
                             priority = priority,
                             deadline = deadline.ifBlank { null }
                         )
+                        android.util.Log.d("AddTaskScreen", "Task created: $task")
                         viewModel.addTask(task)
                     }
                 },
