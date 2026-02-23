@@ -29,6 +29,7 @@ fun AddTaskScreen(
 
     // Track if operation was initiated from this screen
     var operationInitiated by remember { mutableStateOf(false) }
+    var hasNavigated by remember { mutableStateOf(false) }
 
     // Observe ViewModel states
     val isLoading by viewModel.isLoading.collectAsState()
@@ -37,9 +38,10 @@ fun AddTaskScreen(
 
     // Handle operation result - only navigate back if operation was initiated from this screen
     LaunchedEffect(operationResult) {
-        if (operationInitiated) {
+        if (operationInitiated && !hasNavigated) {
             when (operationResult) {
                 is TaskOperationResult.Success -> {
+                    hasNavigated = true
                     onNavigateBack()
                 }
                 else -> { /* No action needed */ }
