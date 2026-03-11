@@ -11,6 +11,7 @@ sealed class Routes(val route: String) {
     data object EditTask : Routes("edit_task/{taskId}") {
         fun createRoute(taskId: String) = "edit_task/$taskId"
     }
+    data object Settings : Routes("settings")
 }
 
 

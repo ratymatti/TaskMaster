@@ -88,6 +88,9 @@ dependencies {
     // Kotlinx Datetime
     implementation(libs.kotlinx.datetime)
 
+    // DataStore Preferences
+    implementation(libs.androidx.datastore.preferences)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

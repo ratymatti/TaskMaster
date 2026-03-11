@@ -13,6 +13,7 @@ import com.example.taskmaster.ui.screens.AddTaskScreen
 import com.example.taskmaster.ui.screens.EditTaskScreen
 import com.example.taskmaster.ui.screens.LoginScreen
 import com.example.taskmaster.ui.screens.RegisterScreen
+import com.example.taskmaster.ui.screens.SettingsScreen
 import com.example.taskmaster.ui.screens.TaskListScreen
 import com.example.taskmaster.viewmodel.LoginViewModel
 import com.example.taskmaster.viewmodel.TaskViewModel
@@ -71,6 +72,9 @@ fun NavGraph(navController: NavHostController) {
                 onEditTask = { taskId ->
                     navController.navigate(Routes.EditTask.createRoute(taskId))
                 },
+                onSettings = {
+                    navController.navigate(Routes.Settings.route)
+                },
                 onSignOut = {
                     coroutineScope.launch {
                         loginViewModel.signOut()
@@ -110,6 +114,15 @@ fun NavGraph(navController: NavHostController) {
             EditTaskScreen(
                 taskId = taskId,
                 viewModel = viewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Settings Screen
+        composable(route = Routes.Settings.route) {
+            SettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
