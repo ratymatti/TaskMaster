@@ -91,10 +91,8 @@ class RegisterViewModel(
                     else -> e.message ?: "Registration failed"
                 }
             } catch (e: IOException) {
-                // Handle network errors
                 _errorMessage.value = "Network error. Please check your connection and try again"
             } catch (e: Exception) {
-                // Handle other errors
                 _errorMessage.value = e.message ?: "Registration failed. Please try again"
             } finally {
                 _isLoading.value = false

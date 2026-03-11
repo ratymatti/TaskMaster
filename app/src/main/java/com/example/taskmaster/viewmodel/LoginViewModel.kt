@@ -10,9 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-/**
- * LoginViewModel - handles login logic
- */
 class LoginViewModel(
     private val authService: AuthService = AuthService()
 ) : ViewModel() {
@@ -32,9 +29,6 @@ class LoginViewModel(
     private val _accessToken = MutableStateFlow<String?>(null)
     val accessToken: StateFlow<String?> = _accessToken.asStateFlow()
 
-    /**
-     * Perform login with email and password using Supabase authentication
-     */
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -81,10 +75,8 @@ class LoginViewModel(
                     else -> e.message ?: "Authentication failed"
                 }
             } catch (e: IOException) {
-                // Handle network errors
                 _errorMessage.value = "Network error. Please check your connection and try again"
             } catch (e: Exception) {
-                // Handle other errors
                 _errorMessage.value = e.message ?: "Login failed. Please try again"
             } finally {
                 _isLoading.value = false

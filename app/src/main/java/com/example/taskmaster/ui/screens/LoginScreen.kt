@@ -151,7 +151,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Navigate to Register link
             TextButton(
                 onClick = onNavigateToRegister,
                 modifier = Modifier.fillMaxWidth()

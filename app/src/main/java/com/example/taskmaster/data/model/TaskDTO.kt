@@ -36,7 +36,6 @@ fun TaskDTO.toTask(): Task {
         priority = try {
             TaskPriority.valueOf(priority.uppercase())
         } catch (e: IllegalArgumentException) {
-            // Fallback to MEDIUM if invalid value (should not happen with DB constraint)
             TaskPriority.MEDIUM
         },
         deadline = deadline,

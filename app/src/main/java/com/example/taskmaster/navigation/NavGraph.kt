@@ -109,7 +109,7 @@ fun NavGraph(navController: NavHostController) {
             val taskId = backStackEntry.arguments?.getString("taskId") ?: return@composable
             EditTaskScreen(
                 taskId = taskId,
-                viewModel = viewModel, // Pass shared ViewModel
+                viewModel = viewModel,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

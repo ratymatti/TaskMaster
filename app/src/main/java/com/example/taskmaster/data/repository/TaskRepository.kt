@@ -12,32 +12,18 @@ import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.SerializationException
 import java.io.IOException
 
-/**
- * Repository for Task operations with Supabase
- * Handles all database interactions for tasks
- */
 object TaskRepository {
     private val supabase = SupabaseClient.client
     private val authService = AuthService()
 
-    /**
-     * Get all tasks for the current authenticated user
-     * @return List of tasks for the current user
-     * @throws UserNotAuthenticatedException if user is not authenticated
-     * @throws NetworkException if network error occurs
-     * @throws DatabaseException if database query fails
-     */
     suspend fun getTasksForCurrentUser(): List<Task> {
         try {
-            // Get current user
             val currentUser = authService.getCurrentUser()
                 ?: throw UserNotAuthenticatedException("User is not authenticated")
 
-            // Get user ID
             val userId = currentUser.id
             android.util.Log.d("TaskRepository", "Loading tasks for user: $userId")
 
-            // Query tasks from Supabase filtered by user_id
             val taskDTOs = supabase
                 .from("Tasks")
                 .select() {
@@ -49,7 +35,6 @@ object TaskRepository {
 
             android.util.Log.d("TaskRepository", "Successfully loaded ${taskDTOs.size} tasks")
 
-            // Convert DTOs to Task models
             return taskDTOs.map { it.toTask() }
 
         } catch (e: UserNotAuthenticatedException) {
@@ -67,12 +52,6 @@ object TaskRepository {
         }
     }
 
-    /**
-     * Add a new task for the current user
-     * @param task Task to add
-     * @return The created task with id
-     * @throws UserNotAuthenticatedException if user is not authenticated
-     */
     suspend fun addTask(task: Task): Task {
         try {
             val currentUser = authService.getCurrentUser()
@@ -80,7 +59,6 @@ object TaskRepository {
 
             val userId = currentUser.id
 
-            // Create TaskDTO for insertion - ensure priority is explicitly set
             val priorityValue = task.priority.name
             android.util.Log.d("TaskRepository", "Adding task with priority: $priorityValue (from enum: ${task.priority})")
 
@@ -113,12 +91,6 @@ object TaskRepository {
         }
     }
 
-    /**
-     * Update an existing task
-     * @param task Task to update
-     * @return The updated task
-     * @throws UserNotAuthenticatedException if user is not authenticated
-     */
     suspend fun updateTask(task: Task): Task {
         try {
             val currentUser = authService.getCurrentUser()
@@ -126,12 +98,11 @@ object TaskRepository {
 
             val userId = currentUser.id
 
-            // Create TaskDTO for update
             val taskDTOToUpdate = TaskDTO(
                 id = task.id,
                 title = task.title,
                 description = task.description,
-                priority = task.priority.name, // Always non-null enum value
+                priority = task.priority.name,
                 isCompleted = task.isCompleted,
                 deadline = task.deadline,
                 userId = userId
@@ -158,14 +129,8 @@ object TaskRepository {
         }
     }
 
-    /**
-     * Delete a task by ID
-     * @param taskId ID of the task to delete
-     * @throws UserNotAuthenticatedException if user is not authenticated
-     */
     suspend fun deleteTask(taskId: String) {
         try {
-            // Verify user is authenticated
             authService.getCurrentUser()
                 ?: throw UserNotAuthenticatedException("User is not authenticated")
 
@@ -186,16 +151,8 @@ object TaskRepository {
         }
     }
 
-    /**
-     * Toggle task completion status
-     * @param taskId ID of the task to toggle
-     * @param isCompleted New completion status
-     * @return The updated task
-     * @throws UserNotAuthenticatedException if user is not authenticated
-     */
     suspend fun toggleTaskCompletion(taskId: String, isCompleted: Boolean): Task {
         try {
-            // Verify user is authenticated
             authService.getCurrentUser()
                 ?: throw UserNotAuthenticatedException("User is not authenticated")
 
