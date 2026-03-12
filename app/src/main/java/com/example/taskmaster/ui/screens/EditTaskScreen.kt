@@ -1,21 +1,15 @@
 package com.example.taskmaster.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.taskmaster.data.model.TaskPriority
-import com.example.taskmaster.viewmodel.TaskOperationResult
+import com.example.taskmaster.ui.screens.components.*
 import com.example.taskmaster.viewmodel.TaskViewModel
 
 /**
- * Edit Task Screen - form for editing an existing task
+ * Edit Task Screen - form for editing an existing task.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(
     taskId: String,
@@ -24,179 +18,58 @@ fun EditTaskScreen(
 ) {
     val task = viewModel.getTaskById(taskId)
 
-    // Initialize state with existing task data
-    var title by remember { mutableStateOf(task?.title ?: "") }
-    var description by remember { mutableStateOf(task?.description ?: "") }
-    var priority by remember { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
-    var deadline by remember { mutableStateOf(task?.deadline ?: "") }
+    var formState by remember(task) {
+        mutableStateOf(task?.let { TaskFormState.fromTask(it) } ?: TaskFormState())
+    }
 
-    // Track if operation was initiated from this screen
-    var operationInitiated by remember { mutableStateOf(false) }
-    var hasNavigated by remember { mutableStateOf(false) }
-
-    // Observe ViewModel states
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val operationResult by viewModel.operationResult.collectAsState()
 
-    // Handle operation result - only navigate back if operation was initiated from this screen
-    LaunchedEffect(operationResult) {
-        if (operationInitiated && !hasNavigated) {
-            when (operationResult) {
-                is TaskOperationResult.Success -> {
-                    hasNavigated = true
-                    onNavigateBack()
-                }
-                else -> { /* No action needed */ }
-            }
-        }
-    }
+    val navigation = rememberTaskFormNavigation(operationResult, onNavigateBack)
 
     if (task == null) {
-        // Task not found
-        Box(modifier = Modifier.fillMaxSize()) {
-            Text("Task not found")
-        }
+        TaskNotFoundScreen(onNavigateBack = onNavigateBack)
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Edit Task") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Error message display
-            error?.let { errorMessage ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = errorMessage,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
+    TaskFormScaffold(
+        title = "Edit Task",
+        onNavigateBack = onNavigateBack,
+        error = error
+    ) {
+        TaskFormFields(
+            title = formState.title,
+            onTitleChange = { formState = formState.copy(title = it) },
+            description = formState.description,
+            onDescriptionChange = { formState = formState.copy(description = it) },
+            priority = formState.priority,
+            onPriorityChange = { formState = formState.copy(priority = it) },
+            deadline = formState.deadline,
+            onDeadlineChange = { formState = formState.copy(deadline = it) },
+            enabled = !isLoading
+        )
 
-            // Title Field
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Title") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !isLoading
-            )
+        Spacer(modifier = Modifier.weight(1f))
 
-            // Description Field
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description (Optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 5,
-                enabled = !isLoading
-            )
+        UpdateTaskButton(
+            onClick = {
+                navigation.markOperationInitiated()
+                viewModel.updateTask(formState.toTask(existingTask = task))
+            },
+            enabled = formState.isValid() && !isLoading,
+            isLoading = isLoading,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            // Priority Selector
-            Text("Priority", style = MaterialTheme.typography.labelLarge)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TaskPriority.entries.forEach { priorityOption ->
-                    FilterChip(
-                        selected = priority == priorityOption,
-                        onClick = { priority = priorityOption },
-                        label = { Text(priorityOption.name) },
-                        modifier = Modifier.weight(1f),
-                        enabled = !isLoading
-                    )
-                }
-            }
-
-            // Deadline Field (simplified for now)
-            OutlinedTextField(
-                value = deadline,
-                onValueChange = { deadline = it },
-                label = { Text("Deadline (Optional, ISO format)") },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("2026-02-15T17:00:00") },
-                enabled = !isLoading
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {
-                    if (title.isNotBlank()) {
-                        operationInitiated = true
-                        val updatedTask = task.copy(
-                            title = title,
-                            description = description.ifBlank { null },
-                            priority = priority,
-                            deadline = deadline.ifBlank { null }
-                        )
-                        viewModel.updateTask(updatedTask)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = title.isNotBlank() && !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Update Task")
-                }
-            }
-
-            // Delete Button
-            OutlinedButton(
-                onClick = {
-                    operationInitiated = true
-                    viewModel.deleteTask(taskId)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else {
-                    Text("Delete Task")
-                }
-            }
-        }
+        DeleteTaskButton(
+            onClick = {
+                navigation.markOperationInitiated()
+                viewModel.deleteTask(taskId)
+            },
+            enabled = !isLoading,
+            isLoading = isLoading,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
-
