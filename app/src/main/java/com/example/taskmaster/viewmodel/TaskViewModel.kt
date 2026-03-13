@@ -56,6 +56,13 @@ class TaskViewModel : ViewModel() {
     private val _sortOption = MutableStateFlow(SortOption.CREATED_DESC)
     val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
 
+    // Multi-select delete mode state
+    private val _isDeleteMode = MutableStateFlow(false)
+    val isDeleteMode: StateFlow<Boolean> = _isDeleteMode.asStateFlow()
+
+    private val _selectedTaskIds = MutableStateFlow<Set<String>>(emptySet())
+    val selectedTaskIds: StateFlow<Set<String>> = _selectedTaskIds.asStateFlow()
+
     // Sorted task list derived from raw tasks + current sort option
     val sortedTasks: StateFlow<List<Task>> = combine(_tasks, _sortOption) { tasks, option ->
         val priorityWeight = { p: TaskPriority ->
@@ -256,6 +263,46 @@ class TaskViewModel : ViewModel() {
      */
     fun setSortOption(option: SortOption) {
         _sortOption.value = option
+    }
+
+    /**
+     * Toggle multi-select delete mode on/off
+     */
+    fun toggleDeleteMode() {
+        _isDeleteMode.value = !_isDeleteMode.value
+        _selectedTaskIds.value = emptySet()
+    }
+
+    /**
+     * Toggle selection of a task in delete mode
+     */
+    fun toggleTaskSelection(id: String) {
+        val current = _selectedTaskIds.value
+        _selectedTaskIds.value = if (id in current) current - id else current + id
+    }
+
+    /**
+     * Delete all currently selected tasks
+     */
+    fun deleteSelectedTasks() {
+        val ids = _selectedTaskIds.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                taskRepository.deleteTasks(ids)
+                _tasks.value = _tasks.value.filter { it.id !in ids }
+                _snackbarMessage.value = "${ids.size} task(s) deleted"
+                _isDeleteMode.value = false
+                _selectedTaskIds.value = emptySet()
+            } catch (e: UserNotAuthenticatedException) {
+                _snackbarMessage.value = "Authentication error. Please sign in again."
+            } catch (e: Exception) {
+                _snackbarMessage.value = "Failed to delete tasks: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 }
 

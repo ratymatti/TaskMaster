@@ -151,6 +151,30 @@ object TaskRepository {
         }
     }
 
+    suspend fun deleteTasks(taskIds: List<String>) {
+        try {
+            authService.getCurrentUser()
+                ?: throw UserNotAuthenticatedException("User is not authenticated")
+
+            for (taskId in taskIds) {
+                supabase
+                    .from("Tasks")
+                    .delete {
+                        filter {
+                            eq("id", taskId)
+                        }
+                    }
+            }
+
+        } catch (e: UserNotAuthenticatedException) {
+            throw e
+        } catch (e: IOException) {
+            throw NetworkException("Network error while deleting tasks", e)
+        } catch (e: Exception) {
+            throw DatabaseException("Failed to delete tasks: ${e.message}", e)
+        }
+    }
+
     suspend fun toggleTaskCompletion(taskId: String, isCompleted: Boolean): Task {
         try {
             authService.getCurrentUser()

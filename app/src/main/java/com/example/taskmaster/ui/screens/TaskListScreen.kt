@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -12,9 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskmaster.ui.screens.components.SortDropdown
@@ -37,6 +41,10 @@ fun TaskListScreen(
     val error by viewModel.error.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     val selectedSort by viewModel.sortOption.collectAsState()
+    val isDeleteMode by viewModel.isDeleteMode.collectAsState()
+    val selectedTaskIds by viewModel.selectedTaskIds.collectAsState()
+
+    var showConfirmDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -83,20 +91,59 @@ fun TaskListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTask) {
-                Icon(Icons.Default.Add, contentDescription = "Add Task")
+            if (isDeleteMode) {
+                FloatingActionButton(
+                    onClick = { if (selectedTaskIds.isNotEmpty()) showConfirmDialog = true },
+                    containerColor = if (selectedTaskIds.isNotEmpty())
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (selectedTaskIds.isNotEmpty())
+                        MaterialTheme.colorScheme.onError
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete Selected Tasks")
+                }
+            } else {
+                FloatingActionButton(onClick = onAddTask) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Task")
+                }
             }
         }
     ) { paddingValues ->
+        if (showConfirmDialog) {
+            DeleteConfirmationDialog(
+                count = selectedTaskIds.size,
+                onConfirm = {
+                    viewModel.deleteSelectedTasks()
+                    showConfirmDialog = false
+                },
+                onDismiss = { showConfirmDialog = false }
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            SortDropdown(
-                selectedOption = selectedSort,
-                onSortSelected = { viewModel.setSortOption(it) }
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    SortDropdown(
+                        selectedOption = selectedSort,
+                        onSortSelected = { viewModel.setSortOption(it) }
+                    )
+                }
+                TextButton(
+                    onClick = { viewModel.toggleDeleteMode() },
+                    enabled = !isLoading
+                ) {
+                    Text(if (isDeleteMode) "Cancel" else "Delete Tasks")
+                }
+            }
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -142,9 +189,15 @@ fun TaskListScreen(
                                 task.id?.let { taskId ->
                                     TaskItem(
                                         task = task,
-                                        onTaskClick = { onEditTask(taskId) },
+                                        onTaskClick = {
+                                            if (!isDeleteMode) onEditTask(taskId)
+                                            else viewModel.toggleTaskSelection(taskId)
+                                        },
                                         onToggleComplete = { viewModel.toggleTaskCompletion(taskId) },
-                                        onDeleteTask = { viewModel.deleteTask(taskId) }
+                                        onDeleteTask = { viewModel.deleteTask(taskId) },
+                                        isDeleteMode = isDeleteMode,
+                                        isSelected = taskId in selectedTaskIds,
+                                        onToggleSelection = { viewModel.toggleTaskSelection(taskId) }
                                     )
                                 }
                             }
@@ -161,46 +214,100 @@ fun TaskItem(
     task: com.example.taskmaster.data.model.Task,
     onTaskClick: () -> Unit,
     onToggleComplete: () -> Unit,
-    onDeleteTask: () -> Unit
+    onDeleteTask: () -> Unit,
+    isDeleteMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {}
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onTaskClick
+    val cardColors = if (isSelected) {
+        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    } else {
+        CardDefaults.cardColors()
+    }
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onErrorContainer
+    else MaterialTheme.colorScheme.onSurface
+    val padding = 16.dp
+    val cardAlpha = if (isDeleteMode) 0.5f else 1f
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .alpha(cardAlpha),
+            onClick = onTaskClick,
+            colors = cardColors
         ) {
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = { onToggleComplete() }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.titleMedium
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(padding),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = task.isCompleted,
+                    onCheckedChange = { onToggleComplete() }
                 )
-                task.description?.let {
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = task.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = contentColor
+                    )
+                    task.description?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isSelected) MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = "Priority: ${task.priority}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isSelected) MaterialTheme.colorScheme.onErrorContainer
+                        else when (task.priority) {
+                            com.example.taskmaster.data.model.TaskPriority.HIGH -> MaterialTheme.colorScheme.error
+                            com.example.taskmaster.data.model.TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
+                            com.example.taskmaster.data.model.TaskPriority.LOW -> MaterialTheme.colorScheme.secondary
+                        }
                     )
                 }
-                Text(
-                    text = "Priority: ${task.priority}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when (task.priority) {
-                        com.example.taskmaster.data.model.TaskPriority.HIGH -> MaterialTheme.colorScheme.error
-                        com.example.taskmaster.data.model.TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
-                        com.example.taskmaster.data.model.TaskPriority.LOW -> MaterialTheme.colorScheme.secondary
-                    }
-                )
             }
         }
+        if (isDeleteMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onToggleSelection() },
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
     }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    count: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Tasks") },
+        text = { Text("Delete $count selected task(s)? This cannot be undone.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
