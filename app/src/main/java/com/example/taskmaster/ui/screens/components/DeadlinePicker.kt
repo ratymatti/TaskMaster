@@ -2,41 +2,75 @@ package com.example.taskmaster.ui.screens.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import kotlinx.datetime.*
 
-/**
- * Parses an ISO 8601 deadline string and returns a human-readable label,
- * e.g. "Feb 15, 2026  17:00". Returns null if the string is blank or unparseable.
- */
 fun formatDeadlineForDisplay(isoString: String): String? {
     if (isoString.isBlank()) return null
     return runCatching {
         val dt = LocalDateTime.parse(isoString)
         val monthAbbr = dt.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
         val hour = dt.hour.toString().padStart(2, '0')
-        val minute = dt.minute.toString().padStart(2, '0')
-        "$monthAbbr ${dt.dayOfMonth}, ${dt.year}  $hour:$minute"
+        "$monthAbbr ${dt.dayOfMonth}, ${dt.year}  $hour:00"
     }.getOrNull()
 }
 
-/**
- * Combines a date (epoch millis from DatePickerState) and a TimePickerState
- * into an ISO 8601 string "yyyy-MM-ddTHH:mm:ss".
- */
-@OptIn(ExperimentalMaterial3Api::class)
-fun buildIsoDeadline(dateMillis: Long, timeState: TimePickerState): String {
+fun buildIsoDeadline(dateMillis: Long, hour: Int): String {
     val date = Instant.fromEpochMilliseconds(dateMillis)
         .toLocalDateTime(TimeZone.UTC)
         .date
-    val time = LocalTime(timeState.hour, timeState.minute, 0)
+    val time = LocalTime(hour, 0, 0)
     return LocalDateTime(date, time).toString()
+}
+
+@Composable
+fun HourPicker(
+    selectedHour: Int,
+    modifier: Modifier = Modifier,
+    onHourSelected: (Int) -> Unit
+) {
+    val hours = remember { (0..23).toList() }
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(6),
+        modifier = modifier.heightIn(max = 240.dp)
+    ) {
+        items(hours) { hour ->
+            val isSelected = hour == selectedHour
+            Surface(
+                shape = CircleShape,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .aspectRatio(1f)
+                    .clickable { onHourSelected(hour) }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = hour.toString().padStart(2, '0'),
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,11 +81,10 @@ fun DeadlinePicker(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var pendingDateMillis by remember { mutableStateOf<Long?>(null) }
+    val showDatePicker = remember { mutableStateOf(false) }
+    val showTimePicker = remember { mutableStateOf(false) }
+    val pendingDateMillis = remember { mutableStateOf<Long?>(null) }
 
-    // Pre-populate the pickers from the existing deadline when editing a task
     val initialMillis: Long = remember(deadline) {
         if (deadline.isBlank()) System.currentTimeMillis()
         else runCatching {
@@ -66,27 +99,17 @@ fun DeadlinePicker(
         else runCatching { LocalDateTime.parse(deadline).hour }.getOrDefault(9)
     }
 
-    val initialMinute: Int = remember(deadline) {
-        if (deadline.isBlank()) 0
-        else runCatching { LocalDateTime.parse(deadline).minute }.getOrDefault(0)
-    }
-
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialMillis
     )
 
-    val timePickerState = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = true
-    )
+    val pendingHour = remember(deadline) { mutableIntStateOf(initialHour) }
 
     val displayText = formatDeadlineForDisplay(deadline) ?: ""
 
-    // Use enabled=false on the OutlinedTextField to suppress the keyboard,
-    // but override the disabled colors so it looks like an active field.
-    // A transparent Box overlay captures taps and opens the date picker.
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
         OutlinedTextField(
             value = displayText,
             onValueChange = {},
@@ -103,87 +126,92 @@ fun DeadlinePicker(
                 disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
             trailingIcon = {
-                if (deadline.isNotBlank()) {
-                    IconButton(onClick = { onDeadlineChange("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear deadline"
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Pick deadline"
-                    )
-                }
+                Icon(
+                    imageVector = if (deadline.isNotBlank()) Icons.Default.Close else Icons.Default.DateRange,
+                    contentDescription = if (deadline.isNotBlank()) "Clear deadline" else "Pick deadline"
+                )
             }
         )
-        // Transparent overlay that captures taps without stealing text focus
+        // Transparent overlay on top of the TextField captures taps for the whole field
         if (enabled) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .clickable { showDatePicker = true }
+                    .clickable { showDatePicker.value = true }
             )
+        }
+        // Clear button rendered last so it sits above the overlay
+        if (enabled && deadline.isNotBlank()) {
+            IconButton(
+                onClick = { onDeadlineChange("") },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear deadline"
+                )
+            }
         }
     }
 
     // ── Step 1: Date picker ──────────────────────────────────────────────────
-    if (showDatePicker) {
+    if (showDatePicker.value) {
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showDatePicker.value = false },
             confirmButton = {
                 TextButton(
                     onClick = {
                         val selected = datePickerState.selectedDateMillis
                         if (selected != null) {
-                            pendingDateMillis = selected
-                            showDatePicker = false
-                            showTimePicker = true   // immediately open time picker
+                            pendingDateMillis.value = selected
+                            showDatePicker.value = false
+                            showTimePicker.value = true
                         }
                     }
                 ) { Text("Next") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker.value = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
-    // ── Step 2: Time picker ──────────────────────────────────────────────────
-    // Material3 has no standalone TimePickerDialog composable;
-    // the standard approach is an AlertDialog wrapping TimePicker.
-    if (showTimePicker) {
+    // ── Step 2: Hour picker ──────────────────────────────────────────────────
+    if (showTimePicker.value) {
         AlertDialog(
             onDismissRequest = {
-                showTimePicker = false
-                pendingDateMillis = null   // user cancelled mid-flow — no update
+                showTimePicker.value = false
+                pendingDateMillis.value = null
             },
-            title = { Text("Select Time") },
-            text = { TimePicker(state = timePickerState) },
+            title = { Text("Select Hour") },
+            text = {
+                HourPicker(
+                    selectedHour = pendingHour.intValue,
+                    onHourSelected = { pendingHour.intValue = it }
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val dateMs = pendingDateMillis
+                        val dateMs = pendingDateMillis.value
                         if (dateMs != null) {
-                            onDeadlineChange(buildIsoDeadline(dateMs, timePickerState))
+                            onDeadlineChange(buildIsoDeadline(dateMs, pendingHour.intValue))
                         }
-                        showTimePicker = false
-                        pendingDateMillis = null
+                        showTimePicker.value = false
+                        pendingDateMillis.value = null
                     }
                 ) { Text("OK") }
             },
             dismissButton = {
                 TextButton(
                     onClick = {
-                        showTimePicker = false
-                        pendingDateMillis = null
+                        showTimePicker.value = false
+                        pendingDateMillis.value = null
                     }
                 ) { Text("Cancel") }
             }
         )
     }
 }
-
