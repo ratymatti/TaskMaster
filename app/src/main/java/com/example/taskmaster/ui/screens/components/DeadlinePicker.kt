@@ -1,6 +1,8 @@
 package com.example.taskmaster.ui.screens.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.datetime.*
 
 fun formatDeadlineForDisplay(isoString: String): String? {
@@ -107,9 +110,19 @@ fun DeadlinePicker(
 
     val displayText = formatDeadlineForDisplay(deadline) ?: ""
 
-    Box(
-        modifier = modifier.fillMaxWidth()
-    ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    if (enabled) {
+        LaunchedEffect(interactionSource) {
+            interactionSource.interactions.collectLatest { interaction ->
+                if (interaction is PressInteraction.Press) {
+                    showDatePicker.value = true
+                }
+            }
+        }
+    }
+
+    Box(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = displayText,
             onValueChange = {},
@@ -117,41 +130,28 @@ fun DeadlinePicker(
             placeholder = { Text("Tap to set a deadline") },
             modifier = Modifier.fillMaxWidth(),
             readOnly = true,
-            enabled = false,
+            enabled = enabled,
+            interactionSource = interactionSource,
             colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor         = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor       = MaterialTheme.colorScheme.outline,
-                disabledLabelColor        = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledPlaceholderColor  = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor         = MaterialTheme.colorScheme.onSurface,
+                unfocusedBorderColor       = MaterialTheme.colorScheme.outline,
+                unfocusedLabelColor        = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedPlaceholderColor  = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTextColor          = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                disabledBorderColor        = MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
+                disabledLabelColor         = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
             ),
             trailingIcon = {
-                Icon(
-                    imageVector = if (deadline.isNotBlank()) Icons.Default.Close else Icons.Default.DateRange,
-                    contentDescription = if (deadline.isNotBlank()) "Clear deadline" else "Pick deadline"
-                )
+                if (enabled && deadline.isNotBlank()) {
+                    IconButton(onClick = { onDeadlineChange("") }) {
+                        Icon(Icons.Default.Close, contentDescription = "Clear deadline")
+                    }
+                } else {
+                    Icon(Icons.Default.DateRange, contentDescription = "Pick deadline")
+                }
             }
         )
-        // Transparent overlay on top of the TextField captures taps for the whole field
-        if (enabled) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { showDatePicker.value = true }
-            )
-        }
-        // Clear button rendered last so it sits above the overlay
-        if (enabled && deadline.isNotBlank()) {
-            IconButton(
-                onClick = { onDeadlineChange("") },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Clear deadline"
-                )
-            }
-        }
     }
 
     // ── Step 1: Date picker ──────────────────────────────────────────────────
