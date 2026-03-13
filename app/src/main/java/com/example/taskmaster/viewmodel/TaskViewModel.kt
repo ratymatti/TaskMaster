@@ -3,11 +3,16 @@ package com.example.taskmaster.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.taskmaster.data.exceptions.UserNotAuthenticatedException
+import com.example.taskmaster.data.model.SortOption
 import com.example.taskmaster.data.model.Task
+import com.example.taskmaster.data.model.TaskPriority
 import com.example.taskmaster.data.repository.TaskRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -46,6 +51,43 @@ class TaskViewModel : ViewModel() {
     // State for operation results (add/update/delete)
     private val _operationResult = MutableStateFlow<TaskOperationResult>(TaskOperationResult.Idle)
     val operationResult: StateFlow<TaskOperationResult> = _operationResult.asStateFlow()
+
+    // Sort option state
+    private val _sortOption = MutableStateFlow(SortOption.CREATED_DESC)
+    val sortOption: StateFlow<SortOption> = _sortOption.asStateFlow()
+
+    // Sorted task list derived from raw tasks + current sort option
+    val sortedTasks: StateFlow<List<Task>> = combine(_tasks, _sortOption) { tasks, option ->
+        val priorityWeight = { p: TaskPriority ->
+            when (p) {
+                TaskPriority.HIGH   -> 3
+                TaskPriority.MEDIUM -> 2
+                TaskPriority.LOW    -> 1
+            }
+        }
+        when (option) {
+            SortOption.CREATED_DESC -> tasks.sortedWith(
+                compareByDescending<Task> { it.createdAt }
+                    .thenByDescending { priorityWeight(it.priority) }
+            )
+            SortOption.CREATED_ASC -> tasks.sortedWith(
+                compareBy<Task> { it.createdAt }
+                    .thenByDescending { priorityWeight(it.priority) }
+            )
+            SortOption.PRIORITY_DESC -> tasks.sortedWith(
+                compareByDescending<Task> { priorityWeight(it.priority) }
+                    .thenByDescending { it.createdAt }
+            )
+            SortOption.PRIORITY_ASC -> tasks.sortedWith(
+                compareBy<Task> { priorityWeight(it.priority) }
+                    .thenByDescending { it.createdAt }
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
 
 
     /**
@@ -207,6 +249,13 @@ class TaskViewModel : ViewModel() {
      */
     fun resetOperationResult() {
         _operationResult.value = TaskOperationResult.Idle
+    }
+
+    /**
+     * Update the active sort option
+     */
+    fun setSortOption(option: SortOption) {
+        _sortOption.value = option
     }
 }
 

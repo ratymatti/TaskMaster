@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.taskmaster.ui.screens.components.SortDropdown
 import com.example.taskmaster.viewmodel.TaskViewModel
 
 /**
@@ -31,10 +32,11 @@ fun TaskListScreen(
     onSettings: () -> Unit,
     viewModel: TaskViewModel = viewModel()
 ) {
-    val tasks by viewModel.tasks.collectAsState()
+    val tasks by viewModel.sortedTasks.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val selectedSort by viewModel.sortOption.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -86,57 +88,65 @@ fun TaskListScreen(
             }
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            SortDropdown(
+                selectedOption = selectedSort,
+                onSortSelected = { viewModel.setSortOption(it) }
+            )
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when {
+                    isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadTasks() }) {
-                            Text("Retry")
+                    }
+                    error != null -> {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = error ?: "Unknown error",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewModel.loadTasks() }) {
+                                Text("Retry")
+                            }
                         }
                     }
-                }
-                tasks.isEmpty() -> {
-                    Text(
-                        text = "No tasks yet. Tap + to add one!",
-                        modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(tasks, key = { it.id ?: "" }) { task ->
-                            task.id?.let { taskId ->
-                                TaskItem(
-                                    task = task,
-                                    onTaskClick = { onEditTask(taskId) },
-                                    onToggleComplete = { viewModel.toggleTaskCompletion(taskId) },
-                                    onDeleteTask = { viewModel.deleteTask(taskId) }
-                                )
+                    tasks.isEmpty() -> {
+                        Text(
+                            text = "No tasks yet. Tap + to add one!",
+                            modifier = Modifier.align(Alignment.Center),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(tasks, key = { it.id ?: "" }) { task ->
+                                task.id?.let { taskId ->
+                                    TaskItem(
+                                        task = task,
+                                        onTaskClick = { onEditTask(taskId) },
+                                        onToggleComplete = { viewModel.toggleTaskCompletion(taskId) },
+                                        onDeleteTask = { viewModel.deleteTask(taskId) }
+                                    )
+                                }
                             }
                         }
                     }
