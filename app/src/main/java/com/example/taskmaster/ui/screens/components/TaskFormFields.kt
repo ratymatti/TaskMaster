@@ -66,12 +66,9 @@ fun TaskFormFields(
         }
 
         // Deadline Field
-        OutlinedTextField(
-            value = deadline,
-            onValueChange = onDeadlineChange,
-            label = { Text("Deadline (Optional, ISO format)") },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("2026-02-15T17:00:00") },
+        DeadlinePicker(
+            deadline = deadline,
+            onDeadlineChange = onDeadlineChange,
             enabled = enabled
         )
     }
