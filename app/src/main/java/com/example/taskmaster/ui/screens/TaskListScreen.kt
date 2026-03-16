@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskmaster.ui.screens.components.SortDropdown
@@ -265,15 +266,26 @@ fun TaskItem(
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+
                     Text(
-                        text = "Priority: ${task.priority}",
+                        text = task.deadline?.let { "Deadline: $it" } ?: "No deadline",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isSelected) MaterialTheme.colorScheme.onErrorContainer
-                        else when (task.priority) {
-                            com.example.taskmaster.data.model.TaskPriority.HIGH -> MaterialTheme.colorScheme.error
-                            com.example.taskmaster.data.model.TaskPriority.MEDIUM -> MaterialTheme.colorScheme.primary
-                            com.example.taskmaster.data.model.TaskPriority.LOW -> MaterialTheme.colorScheme.secondary
-                        }
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (task.isCompleted) {
+                    Text(
+                        text = "Completed",
+                        color = Color(0xFF00FF00), // OK-green color
+                        modifier = Modifier.align(Alignment.Top)
+                    )
+                } else {
+                    Text(
+                        text = "Priority: ${task.priority}",
+                        color = Color.Red, // Assuming priority is highlighted in red
+                        modifier = Modifier.align(Alignment.Top)
                     )
                 }
             }
@@ -310,4 +322,3 @@ private fun DeleteConfirmationDialog(
         }
     )
 }
-
